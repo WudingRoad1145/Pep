@@ -1,0 +1,24 @@
+{
+  "originHash" : "dd62bd9828b338bb318fdd326dc1bdbecb07d011fb557d10b8252d23f441d790",
+  "pins" : [
+    {
+      "identity" : "elevenlabsswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/elevenlabs/ElevenLabsSwift",
+      "state" : {
+        "branch" : "main",
+        "revision" : "46880ec90c87f8cb38e7ab72392f7a99ff22937e"
+      }
+    },
+    {
+      "identity" : "starscream",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/daltoniam/Starscream.git",
+      "state" : {
+        "revision" : "c6bfd1af48efcc9a9ad203665db12375ba6b145a",
+        "version" : "4.0.8"
+      }
+    }
+  ],
+  "version" : 3
+}
