@@ -52,9 +52,38 @@
 		2CA1DFCC2D6AC74E00F41927 /* greeting_dog.lottie */ = {isa = PBXFileReference; lastKnownFileType = file; path = greeting_dog.lottie; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		2CA1E0152D6AD71700F41927 /* Exceptions for "pep" folder in "pepTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Managers/NotificationManager.swift,
+			);
+			target = 2CA1DF832D6A79E500F41927 /* pepTests */;
+		};
+		2CA1E0162D6AD71700F41927 /* Exceptions for "pep" folder in "pepUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Managers/NotificationManager.swift,
+			);
+			target = 2CA1DF8D2D6A79E500F41927 /* pepUITests */;
+		};
+		2CA1E0182D6AD7BD00F41927 /* Exceptions for "pep" folder in "pep" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 2CA1DF732D6A79E400F41927 /* pep */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2CA1DF762D6A79E400F41927 /* pep */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				2CA1E0182D6AD7BD00F41927 /* Exceptions for "pep" folder in "pep" target */,
+				2CA1E0152D6AD71700F41927 /* Exceptions for "pep" folder in "pepTests" target */,
+				2CA1E0162D6AD71700F41927 /* Exceptions for "pep" folder in "pepUITests" target */,
+			);
 			path = pep;
 			sourceTree = "<group>";
 		};
@@ -445,6 +474,7 @@
 				DEVELOPMENT_TEAM = 2MLHSW6S86;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = pep/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to analyze your exercise form and provide real-time feedback for physical therapy exercises.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to enable voice interactions with the AI assistant.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -476,6 +506,7 @@
 				DEVELOPMENT_TEAM = 2MLHSW6S86;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = pep/Info.plist;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to analyze your exercise form and provide real-time feedback for physical therapy exercises.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "This app requires microphone access to enable voice interactions with the AI assistant.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
