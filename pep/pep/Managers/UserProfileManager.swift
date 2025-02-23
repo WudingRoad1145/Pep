@@ -1,6 +1,6 @@
 import Foundation
 
-class UserProfileManager {
+class UserProfileManager: ObservableObject{
     private let userNameKey = "userName"
     private let ageKey = "age"
     private let bodyPartKey = "bodyPart"

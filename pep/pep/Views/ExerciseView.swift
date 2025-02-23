@@ -4,9 +4,17 @@ import AVFoundation
 
 struct ExerciseView: View {
     let exerciseType: ExerciseType
-    @StateObject private var voiceManager = VoiceManager()
-    @StateObject private var exerciseManager = ExerciseManager()
+    @StateObject private var voiceManager: VoiceManager
+    @StateObject private var exerciseManager: ExerciseManager
     @State private var showReport = false
+    
+    // Initialize with dependencies
+    init(exerciseType: ExerciseType, userProfileManager: UserProfileManager) {
+        self.exerciseType = exerciseType
+        // Initialize managers using proper StateObject wrapper syntax
+        _voiceManager = StateObject(wrappedValue: VoiceManager(userProfileManager: userProfileManager))
+        _exerciseManager = StateObject(wrappedValue: ExerciseManager())
+    }
     
     var body: some View {
         GeometryReader { geometry in

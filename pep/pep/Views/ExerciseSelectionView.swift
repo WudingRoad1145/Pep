@@ -36,8 +36,13 @@ struct ExerciseSelectionView: View {
         ExerciseType.fistMaking
     ]
     
+    let userProfileManager: UserProfileManager
     @State private var selectedExercise: ExerciseType?
     @State private var showExercise = false
+    
+    init(userProfileManager: UserProfileManager) {
+        self.userProfileManager = userProfileManager
+    }
     
     var body: some View {
         VStack(spacing: 20) {
@@ -65,7 +70,10 @@ struct ExerciseSelectionView: View {
         }
         .navigationDestination(isPresented: $showExercise) {
             if let exercise = selectedExercise {
-                ExerciseView(exerciseType: exercise)
+                ExerciseView(
+                    exerciseType: exercise,
+                    userProfileManager: userProfileManager
+                )
             }
         }
     }

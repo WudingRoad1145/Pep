@@ -1,20 +1,7 @@
 import SwiftUI
-//import Lottie
+import ElevenLabsSDK
 
-//struct LottieView: UIViewRepresentable {
-//    let name: String
-//    
-//    func makeUIView(context: Context) -> LottieAnimationView {
-//        let animationView = LottieAnimationView(name: name)
-//        animationView.loopMode = .loop
-//        animationView.contentMode = .scaleAspectFit
-//        animationView.play()
-//        return animationView
-//    }
-//    
-//    func updateUIView(_ uiView: LottieAnimationView, context: Context) {}
-//}
-
+// Simple animation for welcome screen
 struct WelcomeAnimation: View {
     @State private var scale: CGFloat = 1.0
     
@@ -32,48 +19,115 @@ struct WelcomeAnimation: View {
     }
 }
 
+// Main Landing View
 struct LandingView: View {
-    @StateObject private var voiceManager = OnboardManager() // previously VoiceManager
+    // MARK: - State Objects and Dependencies
+    // Use StateObject for objects that should persist throughout the view's lifecycle
+    @StateObject private var userProfileManager = UserProfileManager()
+    @StateObject private var onboardManager: OnboardManager
+    @StateObject private var voiceManager: VoiceManager
+    
+    // Local state
     @State private var showExerciseSelection = false
     @State private var showLottie = true
+    @State private var showError = false
+    @State private var errorMessage = ""
     
+    // MARK: - Initialization
+    init() {
+        // Create managers with shared UserProfileManager
+        let userProfileManager = UserProfileManager()
+        let voiceManager = VoiceManager(userProfileManager: userProfileManager)
+        _voiceManager = StateObject(wrappedValue: voiceManager)
+        let onboardManager = OnboardManager(
+            userProfileManager: userProfileManager,
+            voiceManager: voiceManager
+        )
+        _onboardManager = StateObject(wrappedValue: onboardManager)
+    }
+    
+    // MARK: - View Body
     var body: some View {
-        ZStack {
-            Color.white.edgesIgnoringSafeArea(.all)
-            
-            VStack {
-                if showLottie {
-                    WelcomeAnimation()
-                        .frame(width: 300, height: 300)
-//                    LottieView(name: "greeting_dog")
-//                        .frame(width: 300, height: 300)
-                }
+        NavigationStack {
+            ZStack {
+                // Background
+                Color.white.edgesIgnoringSafeArea(.all)
                 
-                MessagesView(messages: voiceManager.messages)
-                
-                if voiceManager.status == .connected {
-                    Button("Continue to Exercises") {
-                        showExerciseSelection = true
+                VStack(spacing: 20) {
+                    // Welcome Animation
+                    if showLottie {
+                        WelcomeAnimation()
+                            .frame(width: 300, height: 300)
                     }
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
+                    
+                    // Message Display
+                    MessagesView(messages: userProfileManager.onboarded ?
+                               voiceManager.messages : onboardManager.messages)
+                        .animation(.easeInOut, value: userProfileManager.onboarded)
+                    
+                    // Navigation Button
+                    if shouldShowContinueButton {
+                        continueButton
+                    }
                 }
+                .padding()
             }
         }
-        .onAppear {
-            voiceManager.startConversation()
+        .onAppear(perform: startAppropriateConversation)
+        .onDisappear(perform: endCurrentConversation)
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
         }
-        .onDisappear {
-            voiceManager.endConversation()
+    }
+    
+    // MARK: - Computed Properties
+    private var shouldShowContinueButton: Bool {
+        if userProfileManager.onboarded {
+            return voiceManager.status == .connected
+        } else {
+            return onboardManager.status == .connected
+        }
+    }
+    
+    // MARK: - UI Components
+    private var continueButton: some View {
+        Button(action: {
+            showExerciseSelection = true
+        }) {
+            Text("Continue to Exercises")
+                .font(.headline)
+                .foregroundColor(.white)
+                .padding()
+                .frame(maxWidth: .infinity)
+                .background(Color.blue)
+                .cornerRadius(10)
         }
         .navigationDestination(isPresented: $showExerciseSelection) {
-            ExerciseSelectionView()
+            ExerciseSelectionView(userProfileManager: userProfileManager)
+        }
+    }
+    
+    // MARK: - Helper Methods
+    private func startAppropriateConversation() {
+        if userProfileManager.onboarded {
+            voiceManager.startConversation()
+        } else {
+            onboardManager.startOnboardingConversation()
+        }
+    }
+    
+    private func endCurrentConversation() {
+        if userProfileManager.onboarded {
+            voiceManager.endConversation()
+        } else {
+            onboardManager.endOnboardingConversation()
         }
     }
 }
 
+// MARK: - Supporting Views
 struct MessagesView: View {
     let messages: [String]
     
@@ -81,11 +135,7 @@ struct MessagesView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(messages, id: \.self) { message in
-                    Text(message)
-                        .padding()
-                        .background(Color.gray.opacity(0.2))
-                        .cornerRadius(8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    MessageBubble(message: message)
                 }
             }
             .padding()
@@ -93,3 +143,16 @@ struct MessagesView: View {
         .frame(height: 200)
     }
 }
+
+struct MessageBubble: View {
+    let message: String
+    
+    var body: some View {
+        Text(message)
+            .padding()
+            .background(Color.gray.opacity(0.2))
+            .cornerRadius(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+

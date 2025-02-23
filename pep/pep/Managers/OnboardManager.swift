@@ -8,9 +8,11 @@ class OnboardManager: ObservableObject {
     private var conversation: ElevenLabsSDK.Conversation?
     private let onboardAgentId = "KWbkPdXsfnxAHYveDmOY" 
     private let userProfileManager: UserProfileManager
+    private let voiceManager: VoiceManager
     
-    init(userProfileManager: UserProfileManager) {
+    init(userProfileManager: UserProfileManager, voiceManager: VoiceManager) {
         self.userProfileManager = userProfileManager
+        self.voiceManager = voiceManager
         checkOnboardingStatus()
     }
     
@@ -19,7 +21,7 @@ class OnboardManager: ObservableObject {
             startOnboardingConversation()
         } else {
             // If already onboarded, start the main voice agent
-            VoiceManager.shared.startConversation()
+            voiceManager.startConversation()
         }
     }
     
@@ -85,7 +87,7 @@ class OnboardManager: ObservableObject {
         if message.contains("onboarding complete") { // Example condition
             userProfileManager.onboarded = true
             endOnboardingConversation()
-            VoiceManager.shared.startConversation()
+            voiceManager.startConversation()
         }
     }
     

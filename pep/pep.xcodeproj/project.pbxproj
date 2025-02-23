@@ -442,7 +442,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"pep/Preview Content\"";
-				DEVELOPMENT_TEAM = WYQ44T92JA;
+				DEVELOPMENT_TEAM = 2MLHSW6S86;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to analyze your exercise form and provide real-time feedback for physical therapy exercises.";
@@ -457,7 +457,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = yanffyy.xyz.pep;
+				PRODUCT_BUNDLE_IDENTIFIER = yanffyy.xyz.setup;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -473,7 +473,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"pep/Preview Content\"";
-				DEVELOPMENT_TEAM = WYQ44T92JA;
+				DEVELOPMENT_TEAM = 2MLHSW6S86;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to analyze your exercise form and provide real-time feedback for physical therapy exercises.";
@@ -488,7 +488,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = yanffyy.xyz.pep;
+				PRODUCT_BUNDLE_IDENTIFIER = yanffyy.xyz.setup;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;

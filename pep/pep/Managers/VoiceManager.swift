@@ -16,7 +16,7 @@ class VoiceManager: ObservableObject {
     func startConversation() {
         Task {
             do {
-                let dynamicVars: [String: DynamicVariableValue] = [
+                let dynamicVars: [String: ElevenLabsSDK.DynamicVariableValue] = [
                     "userName": .string(userProfileManager.userName),
                     "age": .int(userProfileManager.age),
                     "bodyPart": .string(userProfileManager.bodyPart),
