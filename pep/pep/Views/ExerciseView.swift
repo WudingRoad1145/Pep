@@ -5,155 +5,147 @@ import AVFoundation
 struct ExerciseView: View {
     let exerciseType: ExerciseType
     @StateObject private var voiceManager = VoiceManager()
+    @StateObject private var exerciseManager = ExerciseManager()
     @State private var showReport = false
-    
-    // Camera and vision related properties
-    @State private var handLandmarks: [CGPoint] = []
-    @State private var fingerSpreadPercentage: Double = 0
-    private let session = AVCaptureSession()
-    private let handPoseRequest = VNDetectHumanHandPoseRequest()
-    
-    var body: some View {
-        ZStack {
-            // Camera preview
-            CameraViewWrapper(session: session)
-                .edgesIgnoringSafeArea(.all)
-            
-            // Hand landmarks overlay
-            HandLandmarksOverlay(landmarks: handLandmarks)
-            
-            VStack {
-                Spacer()
-                // Messages overlay
-                MessagesView(messages: voiceManager.messages)
-                    .padding()
-            }
-        }
-        .onAppear {
-            setupAndStartCapture()
-            voiceManager.startConversation()
-        }
-        .onDisappear {
-            stopCapture()
-            voiceManager.endConversation()
-        }
-        .navigationDestination(isPresented: $showReport) {
-            ExerciseReportView()
-        }
-    }
-    
-    // MARK: - Camera Setup
-    private func setupAndStartCapture() {
-        // Configure camera
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
-              let input = try? AVCaptureDeviceInput(device: device) else { return }
-        
-        let videoOutput = AVCaptureVideoDataOutput()
-        videoOutput.setSampleBufferDelegate(CameraDelegate(onFrame: processFrame), queue: DispatchQueue(label: "videoQueue"))
-        
-        session.beginConfiguration()
-        if session.canAddInput(input) {
-            session.addInput(input)
-        }
-        if session.canAddOutput(videoOutput) {
-            session.addOutput(videoOutput)
-        }
-        session.commitConfiguration()
-        
-        // Start capture
-        DispatchQueue.global(qos: .background).async {
-            session.startRunning()
-        }
-    }
-    
-    private func stopCapture() {
-        session.stopRunning()
-    }
-    
-    // MARK: - Vision Processing
-    private func processFrame(_ sampleBuffer: CMSampleBuffer) {
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
-        try? handler.perform([handPoseRequest])
-        
-        guard let observation = handPoseRequest.results?.first else { return }
-        
-        let points = try? observation.recognizedPoints(.all)
-        let landmarks = points?.values.compactMap { point -> CGPoint? in
-            guard point.confidence > 0.7 else { return nil }
-            return CGPoint(x: point.location.x, y: 1 - point.location.y)
-        }
-        
-        DispatchQueue.main.async {
-            self.handLandmarks = landmarks ?? []
-        }
-    }
-}
-
-// MARK: - Supporting Views
-private struct CameraViewWrapper: UIViewRepresentable {
-    let session: AVCaptureSession
-    
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView(frame: .zero)
-        let layer = AVCaptureVideoPreviewLayer(session: session)
-        layer.videoGravity = .resizeAspectFill
-        view.layer.addSublayer(layer)
-        return view
-    }
-    
-    func updateUIView(_ uiView: UIView, context: Context) {
-        if let layer = uiView.layer.sublayers?.first as? AVCaptureVideoPreviewLayer {
-            layer.frame = uiView.bounds
-        }
-    }
-}
-
-private struct HandLandmarksOverlay: View {
-    let landmarks: [CGPoint]
     
     var body: some View {
         GeometryReader { geometry in
-            Path { path in
-                for (index, point) in landmarks.enumerated() {
-                    let screenPoint = CGPoint(
-                        x: point.x * geometry.size.width,
-                        y: point.y * geometry.size.height
-                    )
+            ZStack {
+                // Camera Layer
+                CameraView(session: exerciseManager.session)
+                    .ignoresSafeArea()
+                
+                // Hand Pose Layer
+                HandPoseView(points: exerciseManager.handPosePoints)
+                    .ignoresSafeArea()
+                
+                // Messages Overlay
+                VStack {
+                    Spacer()
                     
-                    if index == 0 {
-                        path.move(to: screenPoint)
-                    } else {
-                        path.addLine(to: screenPoint)
+                    // Messages
+                    ScrollView {
+                        ForEach(voiceManager.messages, id: \.self) { message in
+                            Text(message)
+                                .padding()
+                                .background(.ultraThinMaterial)
+                                .cornerRadius(15)
+                                .padding(.horizontal)
+                        }
                     }
+                    .frame(maxHeight: 200)
+                    
+                    // Complete Exercise Button
+                    Button(action: {
+                        showReport = true
+                    }) {
+                        Text("Complete Exercise")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue)
+                            .cornerRadius(15)
+                    }
+                    .padding()
                 }
             }
-            .stroke(Color.green, lineWidth: 2)
-            
-            // Draw points at landmarks
-            ForEach(0..<landmarks.count, id: \.self) { index in
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: 8, height: 8)
-                    .position(
-                        x: landmarks[index].x * geometry.size.width,
-                        y: landmarks[index].y * geometry.size.height
-                    )
-            }
+        }
+        .onAppear {
+            exerciseManager.startSession()
+            voiceManager.startConversation()
+        }
+        .onDisappear {
+            exerciseManager.stopSession()
+            voiceManager.endConversation()
+        }
+        .fullScreenCover(isPresented: $showReport) {
+            ExerciseReportView()
         }
     }
 }
 
-// MARK: - Camera Delegate
-private class CameraDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
-    let onFrame: (CMSampleBuffer) -> Void
+// Camera Preview
+struct CameraView: UIViewRepresentable {
+    let session: AVCaptureSession
     
-    init(onFrame: @escaping (CMSampleBuffer) -> Void) {
-        self.onFrame = onFrame
+    class PreviewView: UIView {
+        override class var layerClass: AnyClass {
+            return AVCaptureVideoPreviewLayer.self
+        }
+        
+        var previewLayer: AVCaptureVideoPreviewLayer {
+            return layer as! AVCaptureVideoPreviewLayer
+        }
     }
     
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        onFrame(sampleBuffer)
+    func makeUIView(context: Context) -> PreviewView {
+        let view = PreviewView()
+        view.previewLayer.session = session
+        view.previewLayer.videoGravity = .resizeAspectFill
+        return view
+    }
+    
+    func updateUIView(_ uiView: PreviewView, context: Context) {
+        uiView.previewLayer.frame = uiView.frame
+    }
+}
+
+// Hand Pose Visualization
+struct HandPoseView: View {
+    let points: [CGPoint]
+    
+    var body: some View {
+        GeometryReader { geometry in
+            if !points.isEmpty {
+                ZStack {
+                    // Draw lines
+                    Path { path in
+                        drawHandSkeleton(path: &path, points: points)
+                    }
+                    .stroke(Color.yellow, lineWidth: 3)
+                    
+                    // Draw points
+                    ForEach(0..<points.count, id: \.self) { index in
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 15, height: 15)
+                            .position(points[index])
+                    }
+                }
+            }
+        }
+    }
+    
+    private func drawHandSkeleton(path: inout Path, points: [CGPoint]) {
+        // Constants for finger indices
+        let thumbIndices = 0...3
+        let indexIndices = 4...7
+        let middleIndices = 8...11
+        let ringIndices = 12...15
+        let pinkyIndices = 16...19
+        
+        let fingerRanges = [thumbIndices, indexIndices, middleIndices, ringIndices, pinkyIndices]
+        
+        for range in fingerRanges {
+            if points.count > range.upperBound {
+                path.move(to: points[range.lowerBound])
+                for i in (range.lowerBound + 1)...range.upperBound {
+                    path.addLine(to: points[i])
+                }
+            }
+        }
+        
+        // Connect finger bases to wrist
+        if points.count >= 21 {
+            let wristPoint = points[20]
+            let baseIndices = [3, 7, 11, 15, 19]
+            for baseIndex in baseIndices {
+                if points.count > baseIndex {
+                    path.move(to: wristPoint)
+                    path.addLine(to: points[baseIndex])
+                }
+            }
+        }
     }
 }
