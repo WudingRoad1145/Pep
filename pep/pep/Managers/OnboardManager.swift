@@ -81,9 +81,7 @@ class OnboardManager: ObservableObject {
     }
     
     private func handleOnboardingMessage(_ message: String) {
-        // Logic to determine if onboarding is complete
-        if message.contains("onboarding complete") { // Example condition
-            userProfileManager.onboarded = true
+        if userProfileManager.onboarded { 
             endOnboardingConversation()
             VoiceManager.shared.startConversation()
         }

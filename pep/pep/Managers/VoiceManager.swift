@@ -2,6 +2,12 @@ import Foundation
 import ElevenLabsSDK
 
 class VoiceManager: ObservableObject {
+    static let shared = VoiceManager()
+    
+    private init() {
+        // Private initialization to ensure just one instance is created.
+    }
+    
     @Published var status: ElevenLabsSDK.Status = .disconnected
     @Published var messages: [String] = []
     
@@ -16,12 +22,12 @@ class VoiceManager: ObservableObject {
     func startConversation() {
         Task {
             do {
-                let dynamicVars: [String: DynamicVariableValue] = [
+                let dynamicVars = [
                     "userName": .string(userProfileManager.userName),
-                    "age": .int(userProfileManager.age),
+                    "age": .number(userProfileManager.age),
                     "bodyPart": .string(userProfileManager.bodyPart),
                     "motivation": .string(userProfileManager.motivation),
-                    "notificationPreference": .boolean(userProfileManager.notificationPreference)
+                    "notificationPreference": .string(userProfileManager.notificationPreference)
                 ]
                 
                 let config = ElevenLabsSDK.SessionConfig(
