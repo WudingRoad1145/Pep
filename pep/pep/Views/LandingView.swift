@@ -33,7 +33,7 @@ struct WelcomeAnimation: View {
 }
 
 struct LandingView: View {
-    @StateObject private var voiceManager = VoiceManager()
+    @StateObject private var voiceManager = OnboardManager() // previously VoiceManager
     @State private var showExerciseSelection = false
     @State private var showLottie = true
     
