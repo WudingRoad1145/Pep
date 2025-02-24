@@ -53,6 +53,7 @@ class VoiceManager: ObservableObject {
                     // Set onboarded to true
                     self.userProfileManager.onboarded = true
                     self.userProfileManager.logCurrentUserProfile()
+                    return "VoiceManager: 🧑 User information updated successfully"
                 }
                 
                 callbacks.onConnect = { [weak self] _ in
