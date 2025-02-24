@@ -30,7 +30,7 @@ class VoiceManager: ObservableObject {
     /// **Restarts the conversation with the new agent.**
     private func restartConversation() {
         endConversation()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             self.startConversation()
         }
     }

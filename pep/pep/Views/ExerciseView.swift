@@ -70,6 +70,7 @@ struct ExerciseView: View {
         }
         .onAppear {
             print("🚀 Starting ExerciseManager and VoiceManager concurrently...")
+            voiceManager.switchToExerciseAgent()
             
             DispatchQueue.global(qos: .userInitiated).async {
                 exerciseManager.startSession()
