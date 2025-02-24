@@ -1,5 +1,7 @@
 # Pep
-Pep- your compassionate Physical Therapy Agent
+Pep - your compassionate Physical Therapy Agent
+
+<img width="167" alt="dog" src="https://github.com/user-attachments/assets/0da60340-3a84-4540-99b1-89917372d903" />
 
 Physical therapy only works if you actually do it – but it's hard to stay motivated without instant rewards or feedback. Pep fixes this. Here’s how Pep helps users stick to their PT exercises (not all have been implemented):
 
