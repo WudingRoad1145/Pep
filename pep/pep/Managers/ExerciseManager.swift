@@ -3,25 +3,21 @@ import AVFoundation
 import Vision
 
 class ExerciseManager: NSObject, ObservableObject {
-    // Published properties
     @Published var handPosePoints: [CGPoint] = []
     @Published var isAuthorized = false
     @Published var error: String?
-    
-    // Camera properties
+
     let session = AVCaptureSession()
     private let handPoseRequest = VNDetectHumanHandPoseRequest()
-    var previewLayer: AVCaptureVideoPreviewLayer?
-    
-    // Configuration
     private let confidenceThreshold: Float = 0.7
+    private let captureQueue = DispatchQueue(label: "cameraProcessingQueue", qos: .userInitiated)
     
     override init() {
         super.init()
         handPoseRequest.maximumHandCount = 1
         checkPermissions()
     }
-    
+
     private func checkPermissions() {
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
@@ -37,39 +33,41 @@ class ExerciseManager: NSObject, ObservableObject {
             error = "Camera access denied"
         }
     }
-    
+
     func startSession() {
-        guard isAuthorized else { return }
-        
+        guard isAuthorized else {
+            print("Camera access not authorized")
+            return
+        }
+
         session.beginConfiguration()
-        
-        // Setup camera
+
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
               let input = try? AVCaptureDeviceInput(device: device) else {
             error = "Failed to setup camera"
+            print("Failed to setup camera input")
             return
         }
-        
-        // Configure input/output
+
         if session.canAddInput(input) {
             session.addInput(input)
         }
-        
+
         let videoOutput = AVCaptureVideoDataOutput()
-        videoOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
-        
+        videoOutput.setSampleBufferDelegate(self, queue: captureQueue)
+
         if session.canAddOutput(videoOutput) {
             session.addOutput(videoOutput)
         }
-        
+
         session.commitConfiguration()
-        
-        // Start running
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+
+        captureQueue.async { [weak self] in
+            print("ExerciseManager: Starting camera session...")
             self?.session.startRunning()
         }
     }
-    
+
     func stopSession() {
         session.stopRunning()
     }
@@ -78,18 +76,23 @@ class ExerciseManager: NSObject, ObservableObject {
 // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
 extension ExerciseManager: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
-        
-        do {
-            try handler.perform([handPoseRequest])
-            processHandPoseObservation()
-        } catch {
-            print("Failed to perform hand pose request: \(error)")
+        captureQueue.async {
+            guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+                print("Failed to get pixel buffer")
+                return
+            }
+
+            let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
+            
+            do {
+                try handler.perform([self.handPoseRequest])
+                self.processHandPoseObservation()
+            } catch {
+                print("Failed to perform hand pose request: \(error)")
+            }
         }
     }
-    
+
     private func processHandPoseObservation() {
         guard let observation = handPoseRequest.results?.first,
               observation.confidence > confidenceThreshold else {
@@ -98,18 +101,20 @@ extension ExerciseManager: AVCaptureVideoDataOutputSampleBufferDelegate {
             }
             return
         }
-        
-        // Get all finger joint points
-        let points = try? getAllPoints(from: observation)
-        
-        DispatchQueue.main.async {
-            self.handPosePoints = points ?? []
+
+        do {
+            let points = try getAllPoints(from: observation)
+            DispatchQueue.main.async {
+                self.handPosePoints = points
+            }
+        } catch {
+            print("Error extracting hand pose points: \(error)")
         }
     }
-    
+
     private func getAllPoints(from observation: VNHumanHandPoseObservation) throws -> [CGPoint] {
         var points: [CGPoint] = []
-        
+
         let joints: [VNHumanHandPoseObservation.JointName] = [
             .thumbTip, .thumbIP, .thumbMP, .thumbCMC,
             .indexTip, .indexDIP, .indexPIP, .indexMCP,
@@ -118,15 +123,14 @@ extension ExerciseManager: AVCaptureVideoDataOutputSampleBufferDelegate {
             .littleTip, .littleDIP, .littlePIP, .littleMCP,
             .wrist
         ]
-        
+
         for joint in joints {
             let point = try observation.recognizedPoint(joint)
             if point.confidence > confidenceThreshold {
-                // Convert normalized coordinates
-                points.append(CGPoint(x: point.location.x, y: 1 - point.location.y))
+                let transformedPoint = CGPoint(x: 1 - point.location.y, y: point.location.x)
+                points.append(transformedPoint)
             }
         }
-        
         return points
     }
 }

@@ -22,27 +22,23 @@ struct WelcomeAnimation: View {
 // Main Landing View
 struct LandingView: View {
     // MARK: - State Objects and Dependencies
-    // Use StateObject for objects that should persist throughout the view's lifecycle
     @StateObject private var userProfileManager = UserProfileManager()
-    @StateObject private var onboardManager: OnboardManager
     @StateObject private var voiceManager: VoiceManager
+    @StateObject private var onboardManager: OnboardManager
     
     // Local state
     @State private var showExerciseSelection = false
     @State private var showLottie = true
     @State private var showError = false
     @State private var errorMessage = ""
-    
+
     // MARK: - Initialization
     init() {
-        // Create managers with shared UserProfileManager
         let userProfileManager = UserProfileManager()
-        let voiceManager = VoiceManager(userProfileManager: userProfileManager)
+        let voiceManager = VoiceManager()
+        let onboardManager = OnboardManager(userProfileManager: userProfileManager, voiceManager: voiceManager)
+        
         _voiceManager = StateObject(wrappedValue: voiceManager)
-        let onboardManager = OnboardManager(
-            userProfileManager: userProfileManager,
-            voiceManager: voiceManager
-        )
         _onboardManager = StateObject(wrappedValue: onboardManager)
     }
     
@@ -50,22 +46,18 @@ struct LandingView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
                 Color.white.edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: 20) {
-                    // Welcome Animation
                     if showLottie {
                         WelcomeAnimation()
                             .frame(width: 300, height: 300)
                     }
-                    
-                    // Message Display
+
                     MessagesView(messages: userProfileManager.onboarded ?
-                               voiceManager.messages : onboardManager.messages)
+                        voiceManager.messages : onboardManager.messages)
                         .animation(.easeInOut, value: userProfileManager.onboarded)
-                    
-                    // Navigation Button
+
                     if shouldShowContinueButton {
                         continueButton
                     }
@@ -84,13 +76,9 @@ struct LandingView: View {
     
     // MARK: - Computed Properties
     private var shouldShowContinueButton: Bool {
-        if userProfileManager.onboarded {
-            return voiceManager.status == .connected
-        } else {
-            return onboardManager.status == .connected
-        }
+        userProfileManager.onboarded ? voiceManager.status == .connected : onboardManager.status == .connected
     }
-    
+
     // MARK: - UI Components
     private var continueButton: some View {
         Button(action: {
@@ -108,21 +96,25 @@ struct LandingView: View {
             ExerciseSelectionView(userProfileManager: userProfileManager)
         }
     }
-    
+
     // MARK: - Helper Methods
     private func startAppropriateConversation() {
-        if userProfileManager.onboarded {
-            voiceManager.startConversation()
-        } else {
-            onboardManager.startOnboardingConversation()
+        DispatchQueue.global(qos: .userInitiated).async {
+            if userProfileManager.onboarded {
+                voiceManager.startConversation()
+            } else {
+                onboardManager.startOnboardingConversation()
+            }
         }
     }
-    
+
     private func endCurrentConversation() {
-        if userProfileManager.onboarded {
-            voiceManager.endConversation()
-        } else {
-            onboardManager.endOnboardingConversation()
+        DispatchQueue.global(qos: .userInitiated).async {
+            if userProfileManager.onboarded {
+                voiceManager.stopConversation()
+            } else {
+                onboardManager.stopOnboardingConversation()
+            }
         }
     }
 }
@@ -155,4 +147,3 @@ struct MessageBubble: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
-

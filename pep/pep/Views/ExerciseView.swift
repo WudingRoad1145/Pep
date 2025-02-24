@@ -4,17 +4,9 @@ import AVFoundation
 
 struct ExerciseView: View {
     let exerciseType: ExerciseType
-    @StateObject private var voiceManager: VoiceManager
-    @StateObject private var exerciseManager: ExerciseManager
+    @StateObject private var voiceManager = VoiceManager()
+    @StateObject private var exerciseManager = ExerciseManager()
     @State private var showReport = false
-    
-    // Initialize with dependencies
-    init(exerciseType: ExerciseType, userProfileManager: UserProfileManager) {
-        self.exerciseType = exerciseType
-        // Initialize managers using proper StateObject wrapper syntax
-        _voiceManager = StateObject(wrappedValue: VoiceManager(userProfileManager: userProfileManager))
-        _exerciseManager = StateObject(wrappedValue: ExerciseManager())
-    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -23,15 +15,30 @@ struct ExerciseView: View {
                 CameraView(session: exerciseManager.session)
                     .ignoresSafeArea()
                 
-                // Hand Pose Layer
-                HandPoseView(points: exerciseManager.handPosePoints)
+                // Hand Pose Visualization Layer
+                if !exerciseManager.handPosePoints.isEmpty {
+                    ZStack {
+                        // Draw skeleton connections
+                        Path { path in
+                            drawHandSkeleton(path: &path, points: exerciseManager.handPosePoints, in: geometry)
+                        }
+                        .stroke(Color.yellow, lineWidth: 3)
+                        
+                        // Draw joint points
+                        ForEach(0..<exerciseManager.handPosePoints.count, id: \.self) { index in
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 15, height: 15)
+                                .position(convertPoint(exerciseManager.handPosePoints[index], in: geometry))
+                        }
+                    }
                     .ignoresSafeArea()
+                }
                 
                 // Messages Overlay
                 VStack {
                     Spacer()
                     
-                    // Messages
                     ScrollView {
                         ForEach(voiceManager.messages, id: \.self) { message in
                             Text(message)
@@ -60,20 +67,66 @@ struct ExerciseView: View {
             }
         }
         .onAppear {
-            exerciseManager.startSession()
-            voiceManager.startConversation()
+            print("🚀 Starting ExerciseManager and VoiceManager concurrently...")
+            
+            DispatchQueue.global(qos: .userInitiated).async {
+                exerciseManager.startSession()
+            }
+
+            DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 1.5) {
+                print("🎙 Starting VoiceManager...")
+                voiceManager.startConversation()
+            }
         }
         .onDisappear {
             exerciseManager.stopSession()
-            voiceManager.endConversation()
         }
         .fullScreenCover(isPresented: $showReport) {
             ExerciseReportView()
         }
     }
+    
+    // ✅ Convert Vision coordinates to SwiftUI coordinates
+    private func convertPoint(_ point: CGPoint, in geometry: GeometryProxy) -> CGPoint {
+        let transformedX = point.x * geometry.size.width
+        let transformedY = (1 - point.y) * geometry.size.height  // Adjusted for correct orientation
+        return CGPoint(x: transformedX, y: transformedY)
+    }
+
+    // ✅ Draw hand skeleton with correctly mapped coordinates
+    private func drawHandSkeleton(path: inout Path, points: [CGPoint], in geometry: GeometryProxy) {
+        let fingerIndices = [
+            [0, 1, 2, 3],    // Thumb
+            [4, 5, 6, 7],    // Index
+            [8, 9, 10, 11],  // Middle
+            [12, 13, 14, 15], // Ring
+            [16, 17, 18, 19]  // Pinky
+        ]
+
+        for indices in fingerIndices {
+            if points.count > indices.last! {
+                path.move(to: convertPoint(points[indices.first!], in: geometry))
+                for i in indices {
+                    path.addLine(to: convertPoint(points[i], in: geometry))
+                }
+            }
+        }
+
+        if points.count >= 21 {
+            let wrist = convertPoint(points[20], in: geometry)
+            let bases = [3, 7, 11, 15, 19]
+
+            for base in bases {
+                if points.count > base {
+                    path.move(to: wrist)
+                    path.addLine(to: convertPoint(points[base], in: geometry))
+                }
+            }
+        }
+    }
 }
 
-// Camera Preview
+// ✅ Camera Preview Layer
 struct CameraView: UIViewRepresentable {
     let session: AVCaptureSession
     
@@ -96,64 +149,5 @@ struct CameraView: UIViewRepresentable {
     
     func updateUIView(_ uiView: PreviewView, context: Context) {
         uiView.previewLayer.frame = uiView.frame
-    }
-}
-
-// Hand Pose Visualization
-struct HandPoseView: View {
-    let points: [CGPoint]
-    
-    var body: some View {
-        GeometryReader { geometry in
-            if !points.isEmpty {
-                ZStack {
-                    // Draw lines
-                    Path { path in
-                        drawHandSkeleton(path: &path, points: points)
-                    }
-                    .stroke(Color.yellow, lineWidth: 3)
-                    
-                    // Draw points
-                    ForEach(0..<points.count, id: \.self) { index in
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 15, height: 15)
-                            .position(points[index])
-                    }
-                }
-            }
-        }
-    }
-    
-    private func drawHandSkeleton(path: inout Path, points: [CGPoint]) {
-        // Constants for finger indices
-        let thumbIndices = 0...3
-        let indexIndices = 4...7
-        let middleIndices = 8...11
-        let ringIndices = 12...15
-        let pinkyIndices = 16...19
-        
-        let fingerRanges = [thumbIndices, indexIndices, middleIndices, ringIndices, pinkyIndices]
-        
-        for range in fingerRanges {
-            if points.count > range.upperBound {
-                path.move(to: points[range.lowerBound])
-                for i in (range.lowerBound + 1)...range.upperBound {
-                    path.addLine(to: points[i])
-                }
-            }
-        }
-        
-        // Connect finger bases to wrist
-        if points.count >= 21 {
-            let wristPoint = points[20]
-            let baseIndices = [3, 7, 11, 15, 19]
-            for baseIndex in baseIndices {
-                if points.count > baseIndex {
-                    path.move(to: wristPoint)
-                    path.addLine(to: points[baseIndex])
-                }
-            }
-        }
     }
 }

@@ -71,8 +71,7 @@ struct ExerciseSelectionView: View {
         .navigationDestination(isPresented: $showExercise) {
             if let exercise = selectedExercise {
                 ExerciseView(
-                    exerciseType: exercise,
-                    userProfileManager: userProfileManager
+                    exerciseType: exercise
                 )
             }
         }
