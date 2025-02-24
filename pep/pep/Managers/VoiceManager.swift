@@ -17,14 +17,23 @@ class VoiceManager: ObservableObject {
         print("Starting conversation...")
         Task {
             do {
-                let config = ElevenLabsSDK.SessionConfig(agentId: agentId)
+                let dynamicVars: [String: ElevenLabsSDK.DynamicVariableValue] = [
+                    "onboarded": .string(userProfileManager.onboarded ? "Yes" : "No"),
+                    "userName": .string(userProfileManager.userName),
+                    "age": .number(Double(userProfileManager.age)),
+                    "bodyPart": .string(userProfileManager.bodyPart),
+                    "motivation": .string(userProfileManager.motivation),
+                    "notificationPreference": .string(userProfileManager.notificationPreference)
+                ]
+                let config = ElevenLabsSDK.SessionConfig(agentId: agentId, dynamicVariables: dynamicVars)
                 var callbacks = ElevenLabsSDK.Callbacks()
 
                 // Register client tools
                 var clientTools = ElevenLabsSDK.ClientTools()
+                
+                // Collect user information when onboarding (only once)
                 clientTools.register("submit_user_info") { parameters async throws -> String? in
                     print("Received parameters: \(parameters)") // Debug log
-                    
                     guard let userName = parameters["userName"] as? String,
                           let age = parameters["age"] as? Int,
                           let bodyPart = parameters["bodyPart"] as? String,
@@ -35,19 +44,15 @@ class VoiceManager: ObservableObject {
                         print("Received types: userName: \(type(of: parameters["userName"])), age: \(type(of: parameters["age"])), bodyPart: \(type(of: parameters["bodyPart"])), motivation: \(type(of: parameters["motivation"])), notificationPreference: \(type(of: parameters["notificationPreference"]))")
                         throw ElevenLabsSDK.ClientToolError.invalidParameters
                     }
-                    
                     // Update UserProfileManager with the provided information
                     self.userProfileManager.userName = userName
                     self.userProfileManager.age = age
                     self.userProfileManager.bodyPart = bodyPart
                     self.userProfileManager.motivation = motivation
                     self.userProfileManager.notificationPreference = notificationPreference
-                    
                     // Set onboarded to true
                     self.userProfileManager.onboarded = true
-                    
                     self.userProfileManager.logCurrentUserProfile()
-                    return "User information submitted successfully."
                 }
                 
                 callbacks.onConnect = { [weak self] _ in
