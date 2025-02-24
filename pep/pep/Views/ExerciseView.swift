@@ -53,6 +53,7 @@ struct ExerciseView: View {
                     
                     // Complete Exercise Button
                     Button(action: {
+                        voiceManager.endConversation()
                         showReport = true
                     }) {
                         Text("Complete Exercise")
@@ -83,7 +84,7 @@ struct ExerciseView: View {
             exerciseManager.stopSession()
         }
         .fullScreenCover(isPresented: $showReport) {
-            ExerciseReportView()
+            ExerciseReportView(onComplete: { showReport = false })
         }
     }
     

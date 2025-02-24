@@ -13,14 +13,29 @@ class VoiceManager: ObservableObject {
     private let onboardingAgentId = "KWbkPdXsfnxAHYveDmOY"
     private let exerciseAgentId = "lpwQ9rz6CHbfexAY8kU3"
     
-    private var currentAgentId: String
+    @Published private var currentAgentId: String
     
     init(userProfileManager: UserProfileManager, isOnboarding: Bool = true) {
         self.userProfileManager = userProfileManager
         self.currentAgentId = isOnboarding ? onboardingAgentId : exerciseAgentId
     }
     
-    /// Starts the conversation using the selected agent (either onboarding or exercise).
+    /// **Switches the agent from onboarding to exercise mode.**
+    func switchToExerciseAgent() {
+        print("VoiceManager: 🔄 Switching to exercise agent...")
+        self.currentAgentId = exerciseAgentId
+        restartConversation()
+    }
+    
+    /// **Restarts the conversation with the new agent.**
+    private func restartConversation() {
+        endConversation()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            self.startConversation()
+        }
+    }
+
+    /// **Starts the conversation using the selected agent (either onboarding or exercise).**
     func startConversation() {
         print("VoiceManager: 🎤 Starting conversation with agent \(currentAgentId)...")
         
@@ -48,7 +63,7 @@ class VoiceManager: ObservableObject {
         }
     }
     
-    /// Ends the conversation and cleans up the session.
+    /// **Ends the conversation and cleans up the session.**
     func endConversation() {
         DispatchQueue.global(qos: .userInitiated).async {
             self.conversation?.endSession()
@@ -61,16 +76,7 @@ class VoiceManager: ObservableObject {
         }
     }
     
-    /// Toggles conversation based on current status.
-    func toggleConversation() {
-        if status == .connected {
-            endConversation()
-        } else {
-            startConversation()
-        }
-    }
-    
-    /// Ensures the AVAudioSession is configured properly.
+    /// **Ensures the AVAudioSession is configured properly.**
     private func ensureAudioSession() {
         do {
             let audioSession = AVAudioSession.sharedInstance()
@@ -82,7 +88,7 @@ class VoiceManager: ObservableObject {
         }
     }
     
-    /// Creates a session configuration with the necessary dynamic variables.
+    /// **Creates a session configuration with dynamic variables.**
     private func createSessionConfig() -> ElevenLabsSDK.SessionConfig {
         let dynamicVars: [String: ElevenLabsSDK.DynamicVariableValue] = [
             "onboarded": .string(userProfileManager.onboarded ? "Yes" : "No"),
@@ -96,7 +102,7 @@ class VoiceManager: ObservableObject {
         return ElevenLabsSDK.SessionConfig(agentId: currentAgentId, dynamicVariables: dynamicVars)
     }
     
-    /// Creates callbacks for handling session events.
+    /// **Creates callbacks for handling session events.**
     private func createCallbacks() -> ElevenLabsSDK.Callbacks {
         var callbacks = ElevenLabsSDK.Callbacks()
         

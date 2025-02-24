@@ -27,11 +27,13 @@ struct ExerciseReportView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingCongrats = true
     
+    let onComplete: () -> Void
     let date = Date()
     let duration: TimeInterval
     
-    init(duration: TimeInterval = 30) {
+    init(duration: TimeInterval = 30, onComplete: @escaping () -> Void) {
         self.duration = duration
+        self.onComplete = onComplete
     }
     
     var body: some View {
@@ -76,6 +78,11 @@ struct ExerciseReportView: View {
             
             if showingCongrats {
                 CongratulationsOverlay {
+                    withAnimation {
+                        showingCongrats = false
+                    }
+                }
+                .onTapGesture { // ✅ Hide GIF and overlay when tapped
                     withAnimation {
                         showingCongrats = false
                     }
@@ -224,15 +231,30 @@ struct CongratulationsOverlay: View {
         ZStack {
             Color.black.opacity(0.8)
                 .edgesIgnoringSafeArea(.all)
+                .onTapGesture { // ✅ Tap to dismiss overlay
+                    withAnimation {
+                        onComplete()
+                    }
+                }
 
             VStack {
                 GIFView(gifName: "greeting_dog") // Load the GIF here
                     .frame(width: 300, height: 300) // Adjust size
+                    .onTapGesture { // ✅ Tap GIF to dismiss
+                        withAnimation {
+                            onComplete()
+                        }
+                    }
                 
                 Text("Fantastic Work!")
                     .font(.title)
                     .foregroundColor(.white)
                     .padding()
+                    .onTapGesture { // ✅ Tap GIF to dismiss
+                    withAnimation {
+                        onComplete()
+                    }
+                }
             }
         }
     }
