@@ -450,7 +450,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"pep/Preview Content\"";
-				DEVELOPMENT_TEAM = 2MLHSW6S86;
+				DEVELOPMENT_TEAM = WYQ44T92JA;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to analyze your exercise form and provide real-time feedback for physical therapy exercises.";
@@ -481,7 +481,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"pep/Preview Content\"";
-				DEVELOPMENT_TEAM = 2MLHSW6S86;
+				DEVELOPMENT_TEAM = WYQ44T92JA;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need camera access to analyze your exercise form and provide real-time feedback for physical therapy exercises.";

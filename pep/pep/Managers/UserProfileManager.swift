@@ -37,4 +37,16 @@ class UserProfileManager: ObservableObject{
         get { UserDefaults.standard.bool(forKey: onboardedKey) }
         set { UserDefaults.standard.set(newValue, forKey: onboardedKey) }
     }
+
+    func logCurrentUserProfile() {
+        print("UserProfileManager: 🧑 Logging current user profile...")
+        print("User Name: \(userName)")
+        print("Age: \(age)")
+        print("Body Part: \(bodyPart)")
+        print("Motivation: \(motivation)")
+        print("Notification Preference: \(notificationPreference)")
+        print("Onboarded: \(onboarded)")
+    }
 }
+
+
