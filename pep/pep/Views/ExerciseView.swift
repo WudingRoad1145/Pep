@@ -89,7 +89,7 @@ struct ExerciseView: View {
     // ✅ Convert Vision coordinates to SwiftUI coordinates
     private func convertPoint(_ point: CGPoint, in geometry: GeometryProxy) -> CGPoint {
         let transformedX = point.x * geometry.size.width
-        let transformedY = (1 - point.y) * geometry.size.height  // Adjusted for correct orientation
+        let transformedY = (point.y) * geometry.size.height  // Adjusted for correct orientation
         return CGPoint(x: transformedX, y: transformedY)
     }
 
