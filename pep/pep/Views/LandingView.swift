@@ -33,7 +33,7 @@ struct WelcomeAnimation: View {
 }
 
 struct LandingView: View {
-    @StateObject private var voiceManager = VoiceManager()
+    @StateObject private var voiceManager = VoiceManager(userProfileManager: UserProfileManager())
     @State private var showExerciseSelection = false
     @State private var showLottie = true
     
@@ -63,7 +63,16 @@ struct LandingView: View {
             }
         }
         .onAppear {
+            UserProfileManager().logCurrentUserProfile()
             voiceManager.startConversation()
+            // Clear user defaults for testing onboarding
+            let defaults = UserDefaults.standard
+            if let appDomain = Bundle.main.bundleIdentifier {
+                defaults.removePersistentDomain(forName: appDomain)
+                defaults.synchronize()
+            }
+            UserProfileManager().logCurrentUserProfile()
+            // end of testing onboarding
         }
         .onDisappear {
             voiceManager.endConversation()
