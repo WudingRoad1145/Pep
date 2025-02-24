@@ -28,8 +28,8 @@ class UserProfileManager: ObservableObject{
         set { UserDefaults.standard.set(newValue, forKey: motivationKey) }
     }
     
-    var notificationPreference: Bool {
-        get { UserDefaults.standard.bool(forKey: notificationPreferenceKey) }
+    var notificationPreference: String {
+        get { UserDefaults.standard.string(forKey: notificationPreferenceKey) ?? "" }
         set { UserDefaults.standard.set(newValue, forKey: notificationPreferenceKey) }
     }
     

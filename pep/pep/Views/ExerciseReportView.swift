@@ -1,5 +1,27 @@
 import SwiftUI
-//import Lottie
+import WebKit
+
+// MARK: - GIFView to Display GIF in SwiftUI
+struct GIFView: UIViewRepresentable {
+    let gifName: String
+
+    func makeUIView(context: Context) -> WKWebView {
+        let webView = WKWebView()
+        webView.isOpaque = false
+        webView.backgroundColor = .clear
+        webView.scrollView.isScrollEnabled = false
+        
+        if let path = Bundle.main.path(forResource: gifName, ofType: "gif") {
+            let url = URL(fileURLWithPath: path)
+            let data = try? Data(contentsOf: url)
+            webView.load(data!, mimeType: "image/gif", characterEncodingName: "UTF-8", baseURL: url.deletingLastPathComponent())
+        }
+
+        return webView
+    }
+
+    func updateUIView(_ uiView: WKWebView, context: Context) {}
+}
 
 struct ExerciseReportView: View {
     @Environment(\.dismiss) private var dismiss
@@ -197,27 +219,20 @@ struct GeneratePTReportButton: View {
 
 struct CongratulationsOverlay: View {
     let onComplete: () -> Void
-    
+
     var body: some View {
         ZStack {
             Color.black.opacity(0.8)
                 .edgesIgnoringSafeArea(.all)
-            
+
             VStack {
-                WelcomeAnimation()
-                    .frame(width: 300, height: 300)
-//                LottieView(name: "greeting_dog")
-//                    .frame(width: 200, height: 200)
+                GIFView(gifName: "greeting_dog") // Load the GIF here
+                    .frame(width: 300, height: 300) // Adjust size
                 
                 Text("Fantastic Work!")
                     .font(.title)
                     .foregroundColor(.white)
                     .padding()
-            }
-        }
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                onComplete()
             }
         }
     }

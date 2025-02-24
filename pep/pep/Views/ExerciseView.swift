@@ -4,7 +4,8 @@ import AVFoundation
 
 struct ExerciseView: View {
     let exerciseType: ExerciseType
-    @StateObject private var voiceManager = VoiceManager()
+    @StateObject private var userProfileManager = UserProfileManager()
+    @StateObject private var voiceManager = VoiceManager(userProfileManager: UserProfileManager())
     @StateObject private var exerciseManager = ExerciseManager()
     @State private var showReport = false
     

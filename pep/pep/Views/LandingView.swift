@@ -1,30 +1,9 @@
 import SwiftUI
-import ElevenLabsSDK
 
-// Simple animation for welcome screen
-struct WelcomeAnimation: View {
-    @State private var scale: CGFloat = 1.0
-    
-    var body: some View {
-        Image(systemName: "hand.wave.fill")
-            .resizable()
-            .frame(width: 100, height: 100)
-            .foregroundColor(.blue)
-            .scaleEffect(scale)
-            .onAppear {
-                withAnimation(.easeInOut(duration: 1.0).repeatForever()) {
-                    scale = 1.2
-                }
-            }
-    }
-}
-
-// Main Landing View
 struct LandingView: View {
     // MARK: - State Objects and Dependencies
     @StateObject private var userProfileManager = UserProfileManager()
     @StateObject private var voiceManager: VoiceManager
-    @StateObject private var onboardManager: OnboardManager
     
     // Local state
     @State private var showExerciseSelection = false
@@ -35,115 +14,96 @@ struct LandingView: View {
     // MARK: - Initialization
     init() {
         let userProfileManager = UserProfileManager()
-        let voiceManager = VoiceManager()
-        let onboardManager = OnboardManager(userProfileManager: userProfileManager, voiceManager: voiceManager)
+        let voiceManager = VoiceManager(userProfileManager: userProfileManager, isOnboarding: true)
         
         _voiceManager = StateObject(wrappedValue: voiceManager)
-        _onboardManager = StateObject(wrappedValue: onboardManager)
+        _userProfileManager = StateObject(wrappedValue: userProfileManager)
     }
-    
-    // MARK: - View Body
+
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.white.edgesIgnoringSafeArea(.all)
-                
-                VStack(spacing: 20) {
-                    if showLottie {
-                        WelcomeAnimation()
-                            .frame(width: 300, height: 300)
-                    }
+                VStack {
+                    Text("Welcome to Pep!")
+                        .font(.largeTitle)
+                        .bold()
+                        .padding(.top, 40)
 
-                    MessagesView(messages: userProfileManager.onboarded ?
-                        voiceManager.messages : onboardManager.messages)
-                        .animation(.easeInOut, value: userProfileManager.onboarded)
+                    Text("Your AI-powered exercise coach.")
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                    
+                    Spacer()
+                    
+                    // Show messages from the VoiceManager
+                    MessagesView(messages: voiceManager.messages)
+                        .padding()
 
-                    if shouldShowContinueButton {
-                        continueButton
+                    // Button to continue to exercise selection
+                    Button(action: {
+                        completeOnboarding()
+                    }) {
+                        Text("Continue to Exercises")
+                            .font(.headline)
+                            .padding()
+                            .frame(maxWidth: .infinity)
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                            .padding(.horizontal)
                     }
+                    .padding(.bottom, 50)
                 }
-                .padding()
             }
-        }
-        .onAppear(perform: startAppropriateConversation)
-        .onDisappear(perform: endCurrentConversation)
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
+            .onAppear {
+                startOnboardingConversation()
+            }
+            .onDisappear {
+                endOnboardingConversation()
+            }
+            .navigationDestination(isPresented: $showExerciseSelection) {
+                ExerciseSelectionView(userProfileManager: userProfileManager)
+            }
         }
     }
     
-    // MARK: - Computed Properties
-    private var shouldShowContinueButton: Bool {
-        userProfileManager.onboarded ? voiceManager.status == .connected : onboardManager.status == .connected
-    }
+    // MARK: - Conversation Handling
 
-    // MARK: - UI Components
-    private var continueButton: some View {
-        Button(action: {
-            showExerciseSelection = true
-        }) {
-            Text("Continue to Exercises")
-                .font(.headline)
-                .foregroundColor(.white)
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(Color.blue)
-                .cornerRadius(10)
-        }
-        .navigationDestination(isPresented: $showExerciseSelection) {
-            ExerciseSelectionView(userProfileManager: userProfileManager)
-        }
-    }
-
-    // MARK: - Helper Methods
-    private func startAppropriateConversation() {
+    /// Starts onboarding conversation
+    private func startOnboardingConversation() {
         DispatchQueue.global(qos: .userInitiated).async {
-            if userProfileManager.onboarded {
-                voiceManager.startConversation()
-            } else {
-                onboardManager.startOnboardingConversation()
-            }
+            voiceManager.startConversation()
         }
     }
 
-    private func endCurrentConversation() {
+    /// Ends onboarding and switches to exercise agent
+    private func endOnboardingConversation() {
         DispatchQueue.global(qos: .userInitiated).async {
-            if userProfileManager.onboarded {
-                voiceManager.stopConversation()
-            } else {
-                onboardManager.stopOnboardingConversation()
-            }
+            voiceManager.endConversation()
         }
+    }
+    
+    /// Completes onboarding and transitions to exercise agent
+    private func completeOnboarding() {
+        userProfileManager.onboarded = true
+        showExerciseSelection = true
     }
 }
 
 // MARK: - Supporting Views
 struct MessagesView: View {
     let messages: [String]
-    
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 ForEach(messages, id: \.self) { message in
-                    MessageBubble(message: message)
+                    Text(message)
+                        .padding()
+                        .background(Color.gray.opacity(0.2))
+                        .cornerRadius(10)
                 }
             }
-            .padding()
         }
-        .frame(height: 200)
-    }
-}
-
-struct MessageBubble: View {
-    let message: String
-    
-    var body: some View {
-        Text(message)
-            .padding()
-            .background(Color.gray.opacity(0.2))
-            .cornerRadius(8)
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
