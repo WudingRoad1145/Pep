@@ -14,7 +14,7 @@ struct LandingView: View {
     // MARK: - Initialization
     init() {
         let userProfileManager = UserProfileManager()
-        let voiceManager = VoiceManager(userProfileManager: userProfileManager, isOnboarding: !userProfileManager.onboarded)
+        let voiceManager = VoiceManager(userProfileManager: userProfileManager)
         
         _voiceManager = StateObject(wrappedValue: voiceManager)
         _userProfileManager = StateObject(wrappedValue: userProfileManager)
@@ -59,15 +59,15 @@ struct LandingView: View {
                 print("LandingView: onAppear")
                 userProfileManager.logCurrentUserProfile()
                 startOnboardingConversation()
-                // Clear user defaults for testing onboarding
-                let defaults = UserDefaults.standard
-                if let appDomain = Bundle.main.bundleIdentifier {
-                    defaults.removePersistentDomain(forName: appDomain)
-                    defaults.synchronize()
-                }
-                print("LandingView: after clearing user defaults")
-                userProfileManager.logCurrentUserProfile()
-                // end of testing onboarding
+                // // Clear user defaults for testing onboarding
+                // let defaults = UserDefaults.standard
+                // if let appDomain = Bundle.main.bundleIdentifier {
+                //     defaults.removePersistentDomain(forName: appDomain)
+                //     defaults.synchronize()
+                // }
+                // print("LandingView: after clearing user defaults")
+                // userProfileManager.logCurrentUserProfile()
+                // // end of testing onboarding
             }
             .onDisappear {
                 endOnboardingConversation()

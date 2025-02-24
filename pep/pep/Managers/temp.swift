@@ -1,104 +1,99 @@
-// import SwiftUI
-// //import Lottie
+// import Foundation
+// import ElevenLabsSDK
+// import AVFoundation
 
-// //struct LottieView: UIViewRepresentable {
-// //    let name: String
-// //    
-// //    func makeUIView(context: Context) -> LottieAnimationView {
-// //        let animationView = LottieAnimationView(name: name)
-// //        animationView.loopMode = .loop
-// //        animationView.contentMode = .scaleAspectFit
-// //        animationView.play()
-// //        return animationView
-// //    }
-// //    
-// //    func updateUIView(_ uiView: LottieAnimationView, context: Context) {}
-// //}
-
-// struct WelcomeAnimation: View {
-//     @State private var scale: CGFloat = 1.0
+// class VoiceManager: ObservableObject {
+//     @Published var status: ElevenLabsSDK.Status = .disconnected
+//     @Published var messages: [String] = []
     
-//     var body: some View {
-//         Image(systemName: "hand.wave.fill")
-//             .resizable()
-//             .frame(width: 100, height: 100)
-//             .foregroundColor(.blue)
-//             .scaleEffect(scale)
-//             .onAppear {
-//                 withAnimation(.easeInOut(duration: 1.0).repeatForever()) {
-//                     scale = 1.2
-//                 }
-//             }
+//     private var conversation: ElevenLabsSDK.Conversation?
+//     private let agentId = "KWbkPdXsfnxAHYveDmOY" //original main agent lpwQ9rz6CHbfexAY8kU3
+//     private let userProfileManager: UserProfileManager
+
+//     init(userProfileManager: UserProfileManager) {
+//         self.userProfileManager = userProfileManager
 //     }
-// }
-
-// struct LandingView: View {
-//     @StateObject private var voiceManager = VoiceManager(userProfileManager: UserProfileManager())
-//     @State private var showExerciseSelection = false
-//     @State private var showLottie = true
     
-//     var body: some View {
-//         ZStack {
-//             Color.white.edgesIgnoringSafeArea(.all)
-            
-//             VStack {
-//                 if showLottie {
-//                     WelcomeAnimation()
-//                         .frame(width: 300, height: 300)
-// //                    LottieView(name: "greeting_dog")
-// //                        .frame(width: 300, height: 300)
-//                 }
+//     func startConversation() {
+//         print("Starting conversation...")
+//         Task {
+//             do {
+//                 let dynamicVars: [String: ElevenLabsSDK.DynamicVariableValue] = [
+//                     "onboarded": .string(userProfileManager.onboarded ? "Yes" : "No"),
+//                     "userName": .string(userProfileManager.userName),
+//                     "age": .number(Double(userProfileManager.age)),
+//                     "bodyPart": .string(userProfileManager.bodyPart),
+//                     "motivation": .string(userProfileManager.motivation),
+//                     "notificationPreference": .string(userProfileManager.notificationPreference)
+//                 ]
+//                 let config = ElevenLabsSDK.SessionConfig(agentId: agentId, dynamicVariables: dynamicVars)
+//                 var callbacks = ElevenLabsSDK.Callbacks()
+
+//                 // Register client tools
+//                 var clientTools = ElevenLabsSDK.ClientTools()
                 
-//                 MessagesView(messages: voiceManager.messages)
-                
-//                 if voiceManager.status == .connected {
-//                     Button("Continue to Exercises") {
-//                         showExerciseSelection = true
+//                 // Collect user information when onboarding (only once)
+//                 clientTools.register("submit_user_info") { parameters async throws -> String? in
+//                     print("Received parameters: \(parameters)") // Debug log
+//                     guard let userName = parameters["userName"] as? String,
+//                           let age = parameters["age"] as? Int,
+//                           let bodyPart = parameters["bodyPart"] as? String,
+//                           let motivation = parameters["motivation"] as? String,
+//                           let notificationPreference = parameters["notificationPreference"] as? String else {
+//                         print("Parameter validation failed") // Debug log
+//                         print("Expected: userName (String), age (Int), bodyPart (String), motivation (String), notificationPreference (String)")
+//                         print("Received types: userName: \(type(of: parameters["userName"])), age: \(type(of: parameters["age"])), bodyPart: \(type(of: parameters["bodyPart"])), motivation: \(type(of: parameters["motivation"])), notificationPreference: \(type(of: parameters["notificationPreference"]))")
+//                         throw ElevenLabsSDK.ClientToolError.invalidParameters
 //                     }
-//                     .padding()
-//                     .background(Color.blue)
-//                     .foregroundColor(.white)
-//                     .cornerRadius(10)
+//                     // Update UserProfileManager with the provided information
+//                     self.userProfileManager.userName = userName
+//                     self.userProfileManager.age = age
+//                     self.userProfileManager.bodyPart = bodyPart
+//                     self.userProfileManager.motivation = motivation
+//                     self.userProfileManager.notificationPreference = notificationPreference
+//                     // Set onboarded to true
+//                     self.userProfileManager.onboarded = true
+//                     self.userProfileManager.logCurrentUserProfile()
+//                     return "VoiceManager: 🧑 User information updated successfully"
 //                 }
+                
+//                 callbacks.onConnect = { [weak self] _ in
+//                     DispatchQueue.main.async {
+//                         self?.status = .connected
+//                     }
+//                 }
+                
+//                 callbacks.onDisconnect = { [weak self] in
+//                     DispatchQueue.main.async {
+//                         self?.status = .disconnected
+//                         self?.messages.removeAll()
+//                     }
+//                 }
+                
+//                 callbacks.onMessage = { [weak self] message, _ in
+//                     DispatchQueue.main.async {
+//                         self?.messages.append(message)
+//                     }
+//                 }
+                
+//                 conversation = try await ElevenLabsSDK.Conversation.startSession(config: config, callbacks: callbacks, clientTools: clientTools) // Added clientTools parameter
+//             } catch {
+//                 print("Error starting conversation: \(error)")
 //             }
-//         }
-//         .onAppear {
-//             UserProfileManager().logCurrentUserProfile()
-//             voiceManager.startConversation()
-//             // Clear user defaults for testing onboarding
-//             let defaults = UserDefaults.standard
-//             if let appDomain = Bundle.main.bundleIdentifier {
-//                 defaults.removePersistentDomain(forName: appDomain)
-//                 defaults.synchronize()
-//             }
-//             UserProfileManager().logCurrentUserProfile()
-//             // end of testing onboarding
-//         }
-//         .onDisappear {
-//             voiceManager.endConversation()
-//         }
-//         .navigationDestination(isPresented: $showExerciseSelection) {
-//             ExerciseSelectionView()
 //         }
 //     }
-// }
-
-// struct MessagesView: View {
-//     let messages: [String]
     
-//     var body: some View {
-//         ScrollView {
-//             VStack(alignment: .leading, spacing: 10) {
-//                 ForEach(messages, id: \.self) { message in
-//                     Text(message)
-//                         .padding()
-//                         .background(Color.gray.opacity(0.2))
-//                         .cornerRadius(8)
-//                         .frame(maxWidth: .infinity, alignment: .leading)
-//                 }
-//             }
-//             .padding()
+//     func endConversation() {
+//         conversation?.endSession()
+//         conversation = nil
+//         status = .disconnected
+//     }
+    
+//     func toggleConversation() {
+//         if status == .connected {
+//             endConversation()
+//         } else {
+//             startConversation()
 //         }
-//         .frame(height: 200)
 //     }
 // }

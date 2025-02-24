@@ -11,13 +11,13 @@ class VoiceManager: ObservableObject {
     private let userProfileManager: UserProfileManager
     
     private let onboardingAgentId = "KWbkPdXsfnxAHYveDmOY"
-    private let exerciseAgentId = "lpwQ9rz6CHbfexAY8kU3"
+    private let exerciseAgentId = "rbkAQk5LuZYk3NeXlcGK" // "lpwQ9rz6CHbfexAY8kU3"
     
     private var currentAgentId: String
     
-    init(userProfileManager: UserProfileManager, isOnboarding: Bool = true) {
+    init(userProfileManager: UserProfileManager) {
         self.userProfileManager = userProfileManager
-        self.currentAgentId = isOnboarding ? onboardingAgentId : exerciseAgentId
+        self.currentAgentId = userProfileManager.onboarded ? exerciseAgentId : onboardingAgentId
     }
     
     /// Starts the conversation using the selected agent (either onboarding or exercise).
@@ -31,8 +31,9 @@ class VoiceManager: ObservableObject {
                 do {
                     let config = self.createSessionConfig()
                     var callbacks = self.createCallbacks()
+                    var clientTools = self.createClientTools()
                     
-                    self.conversation = try await ElevenLabsSDK.Conversation.startSession(config: config, callbacks: callbacks)
+                    self.conversation = try await ElevenLabsSDK.Conversation.startSession(config: config, callbacks: callbacks, clientTools: clientTools)
 
                     DispatchQueue.main.async {
                         self.status = .connected
@@ -94,38 +95,44 @@ class VoiceManager: ObservableObject {
         ]
         return ElevenLabsSDK.SessionConfig(agentId: currentAgentId, dynamicVariables: dynamicVars)
     }
+
+    private func createClientTools() -> ElevenLabsSDK.ClientTools {
+        var clientTools = ElevenLabsSDK.ClientTools()
+        
+        // Collect user information when onboarding (only once)
+        clientTools.register("submit_user_info") { [weak self] parameters async throws -> String? in
+            guard let self = self else { return nil }
+            
+            print("VoiceManager: 📝 Received parameters: \(parameters)")
+            
+            guard let userName = parameters["userName"] as? String,
+                  let age = parameters["age"] as? Int,
+                  let bodyPart = parameters["bodyPart"] as? String,
+                  let motivation = parameters["motivation"] as? String,
+                  let notificationPreference = parameters["notificationPreference"] as? String else {
+                print("VoiceManager: ❌ Parameter validation failed")
+                print("VoiceManager: Expected: userName (String), age (Int), bodyPart (String), motivation (String), notificationPreference (String)")
+                print("VoiceManager: Received types: userName: \(type(of: parameters["userName"])), age: \(type(of: parameters["age"])), bodyPart: \(type(of: parameters["bodyPart"])), motivation: \(type(of: parameters["motivation"])), notificationPreference: \(type(of: parameters["notificationPreference"]))")
+                throw ElevenLabsSDK.ClientToolError.invalidParameters
+            }
+            // Update UserProfileManager with the provided information
+            self.userProfileManager.userName = userName
+            self.userProfileManager.age = age
+            self.userProfileManager.bodyPart = bodyPart
+            self.userProfileManager.motivation = motivation
+            self.userProfileManager.notificationPreference = notificationPreference
+            // Set onboarded to true
+            self.userProfileManager.onboarded = true
+            self.userProfileManager.logCurrentUserProfile()
+            return "VoiceManager: 🧑 User information updated successfully"
+        }
+        
+        return clientTools
+    }
     
     /// Creates callbacks for handling session events.
     private func createCallbacks() -> ElevenLabsSDK.Callbacks {
         var callbacks = ElevenLabsSDK.Callbacks()
-
-                // Register client tools
-                var clientTools = ElevenLabsSDK.ClientTools()
-                
-                // Collect user information when onboarding (only once)
-                clientTools.register("submit_user_info") { parameters async throws -> String? in
-                    print("Received parameters: \(parameters)") // Debug log
-                    guard let userName = parameters["userName"] as? String,
-                          let age = parameters["age"] as? Int,
-                          let bodyPart = parameters["bodyPart"] as? String,
-                          let motivation = parameters["motivation"] as? String,
-                          let notificationPreference = parameters["notificationPreference"] as? String else {
-                        print("Parameter validation failed") // Debug log
-                        print("Expected: userName (String), age (Int), bodyPart (String), motivation (String), notificationPreference (String)")
-                        print("Received types: userName: \(type(of: parameters["userName"])), age: \(type(of: parameters["age"])), bodyPart: \(type(of: parameters["bodyPart"])), motivation: \(type(of: parameters["motivation"])), notificationPreference: \(type(of: parameters["notificationPreference"]))")
-                        throw ElevenLabsSDK.ClientToolError.invalidParameters
-                    }
-                    // Update UserProfileManager with the provided information
-                    self.userProfileManager.userName = userName
-                    self.userProfileManager.age = age
-                    self.userProfileManager.bodyPart = bodyPart
-                    self.userProfileManager.motivation = motivation
-                    self.userProfileManager.notificationPreference = notificationPreference
-                    // Set onboarded to true
-                    self.userProfileManager.onboarded = true
-                    self.userProfileManager.logCurrentUserProfile()
-                    return "User information updated successfully"
-                }
         
         callbacks.onConnect = { [weak self] _ in
             DispatchQueue.main.async {
